@@ -12,7 +12,7 @@ project(audio_analyser
 
 option(ANALYSER_BUILD_TESTS
     "Build audio-analyser tests"
-    OFF
+    ON
 )
 
 
