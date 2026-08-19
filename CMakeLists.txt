@@ -29,11 +29,15 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Third-party dependencies
 # ============================================================================
 #
-# The dependencies are vendored in the repository but are not part of the
-# public installation of audio-analyser.
+# Dependencies are downloaded from their upstream repositories at fixed
+# commits and patched locally before being added to the build.
 #
-# Their own CMake projects are used to build them.
+# The dependency sources and build products live below the build directory
+# and are not installed by audio-analyser.
 # ============================================================================
+
+include(FetchContent)
+
 
 # ----------------------------------------------------------------------------
 # libsndfile
@@ -54,20 +58,32 @@ set(BUILD_TESTING OFF CACHE BOOL
     FORCE
 )
 
-add_subdirectory(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/libsndfile
-    ${CMAKE_CURRENT_BINARY_DIR}/third-party/libsndfile
+FetchContent_Declare(
+    libsndfile
+    URL
+        https://github.com/libsndfile/libsndfile/archive/7ff854d1e0bd9a751a9ff52ed980c62afced91fe.tar.gz
+    PATCH_COMMAND
+        patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/libsndfile.patch
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+
+FetchContent_MakeAvailable(libsndfile)
 
 
 # ----------------------------------------------------------------------------
 # aubio
 # ----------------------------------------------------------------------------
 
-add_subdirectory(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/aubio
-    ${CMAKE_CURRENT_BINARY_DIR}/third-party/aubio
+FetchContent_Declare(
+    aubio
+    URL
+        https://github.com/aubio/aubio/archive/ad5cf975aed08cc4562dd008cf9f83b12b82ffb8.tar.gz
+    PATCH_COMMAND
+        patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/aubio.patch
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+
+FetchContent_MakeAvailable(aubio)
 
 
 # ============================================================================
@@ -185,7 +201,7 @@ if(ANALYSER_BUILD_TESTS)
     )
 
     add_test(
-        NAME test_audio_mono
+        NAME audio_mono
         COMMAND test_audio_mono
     )
 

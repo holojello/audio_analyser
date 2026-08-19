@@ -1,0 +1,53 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,9 +2,16 @@ cmake_minimum_required (VERSION 3.13)
+
+ project (aubio LANGUAGES C VERSION 0.5.0)
+
+-enable_testing ()
++option(AUBIO_BUILD_EXAMPLES "Build aubio examples" OFF)
++option(AUBIO_BUILD_TESTS "Build aubio tests" OFF)
+
+-# enter subdirectories
+-add_subdirectory (src)
+-add_subdirectory (examples)
+-add_subdirectory (tests)
++add_subdirectory(src)
++
++if(AUBIO_BUILD_EXAMPLES)
++    add_subdirectory(examples)
++endif()
++
++if(AUBIO_BUILD_TESTS)
++    enable_testing()
++    add_subdirectory(tests)
++endif()
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -2,6 +2,10 @@ add_library (aubio SHARED)
+
+ set_target_properties (aubio PROPERTIES SOVERSION 5.4.8)
+
++if(NOT WIN32)
++    target_link_libraries(aubio PRIVATE m)
++endif()
++
+ # check for headers
+ # https://cmake.org/cmake/help/latest/module/CheckIncludeFile.html
+ include (CheckIncludeFile)
+diff --git a/src/utils/strutils.c b/src/utils/strutils.c
+--- a/src/utils/strutils.c
++++ b/src/utils/strutils.c
+@@ -24,6 +24,10 @@
+ #define strncasecmp _strnicmp
+ #endif
+
++#ifndef HAVE_WIN_HACKS
++#include <strings.h>
++#endif
++
+ const char_t *aubio_str_get_extension(const char_t *filename)
+ {
+   // find last occurence of dot character

@@ -1,0 +1,12 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -373,6 +373,8 @@ add_library (sndfile
+ 	${CMAKE_CURRENT_BINARY_DIR}/src/config.h
+ 	)
+ 
++target_compile_definitions (sndfile PRIVATE _GNU_SOURCE)
++
+ add_library (SndFile::sndfile ALIAS sndfile)
+ 
+ target_include_directories (sndfile
