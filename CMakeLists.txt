@@ -170,6 +170,23 @@ if(ANALYSER_BUILD_TESTS)
 
     enable_testing()
 
-    add_subdirectory(tests)
+    add_executable(test_audio_mono
+        tests/test_audio_mono.c
+    )
+
+    target_link_libraries(test_audio_mono
+        PRIVATE
+            analyser
+    )
+
+    target_include_directories(test_audio_mono
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+
+    add_test(
+        NAME test_audio_mono
+        COMMAND test_audio_mono
+    )
 
 endif()
