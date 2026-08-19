@@ -11,12 +11,19 @@ pcm_audio_load(const char *filename)
     SNDFILE *file = NULL;
     SF_INFO info = {0};
     pcm_audio_t *audio = NULL;
+    /* Samples read from the audio file are interleaved, ie if the audio is
+     * stereo the data will be read as L1 R1 L2 R2 L3 R3 ...
+     * where each (Ln Rn) couple correspond to a PCM *frame*, that is a set of
+     * samples played simultaneously (one for each channel).
+     * Here, `interleaved` is meant to contain the interleaved data for the
+     * whole audio file, for example; M1 M2 M3 for a 3 samples (3 frames) mono
+     * audio, or L1 R1 L2 R2 L3 R3 for a 6 samples (3 frames) stereo audio */
     float *interleaved = NULL;
 
-    size_t frame_count;
-    size_t channels;
-    size_t channel_bytes;
-    size_t sample_count;
+    size_t frame_count;     // number of PCM frames
+    size_t channels;        // number of channels
+    size_t channel_size;    // size (in bytes) per channel
+    size_t sample_count;    // total number of samples (in all channels)
 
     if (filename == NULL) {
         return NULL;
@@ -54,7 +61,7 @@ pcm_audio_load(const char *filename)
         goto failure;
     }
 
-    channel_bytes = frame_count * sizeof(float);
+    channel_size = frame_count * sizeof(float);
 
     if (frame_count != 0 && channels > SIZE_MAX / frame_count) {
         goto failure;
@@ -84,7 +91,7 @@ pcm_audio_load(const char *filename)
     }
 
     for (size_t c = 0; c < channels; ++c) {
-        audio->channels_data[c] = malloc(channel_bytes);
+        audio->channels_data[c] = malloc(channel_size);
 
         if (audio->channels_data[c] == NULL && frame_count != 0) {
             goto failure;
