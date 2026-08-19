@@ -9,8 +9,13 @@
 /*
  * Channel-oriented floating-point PCM data.
  *
- * channels_data[c][f] contains the sample for channel c at
- * frame f.
+ * samplerate: sampling rate (Hz)
+ * channels: number of channels (ie the length of the first axis of
+ *   channels_data)
+ * frame_count: number of PCM frames in the data (ie the length of the second
+ *   axis of channels_data)
+ * channels_data[c][f]: contains the sample for channel c at
+ *   frame f.
  */
 typedef struct {
     uint32_t samplerate;
