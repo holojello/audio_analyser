@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <math.h>
 
-void
-test_pcm_audio_load_mono(void)
+int
+main(void)
 {
-    const char *filename = "tests/fixtures/mono_5_samples.wav";
+    const char *filename = "test/fixtures/mono_5_samples.wav";
     const float expected[] = {
         0.8f,
         -0.2f,
@@ -36,4 +36,6 @@ test_pcm_audio_load_mono(void)
     }
 
     pcm_audio_destroy(audio);
+
+    return 0;
 }

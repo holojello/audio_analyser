@@ -12,7 +12,7 @@ project(audio_analyser
 
 option(ANALYSER_BUILD_TESTS
     "Build audio-analyser tests"
-    ON
+    OFF
 )
 
 
@@ -186,23 +186,24 @@ if(ANALYSER_BUILD_TESTS)
 
     enable_testing()
 
-    add_executable(test_audio_mono
-        tests/test_audio_mono.c
+    add_executable(test_audio
+        test/test_audio.c
     )
 
-    target_link_libraries(test_audio_mono
+    target_link_libraries(test_audio
         PRIVATE
             analyser
     )
 
-    target_include_directories(test_audio_mono
+    target_include_directories(test_audio
         PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
 
     add_test(
-        NAME audio_mono
-        COMMAND test_audio_mono
+        NAME audio
+        COMMAND test_audio
     )
 
 endif()
