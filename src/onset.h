@@ -38,6 +38,9 @@ typedef struct {
  *
  * The input contains samples belonging to exactly one channel.
  *
+ * buffer_size, hop_size, method, and abyss_policy have already been
+ * resolved by analyser.c. onset.c does not apply user-facing defaults.
+ *
  * Aubio is used internally by the implementation.
  */
 int
@@ -48,10 +51,10 @@ onset_analyse_channel(
     uint32_t buffer_size,
     uint32_t hop_size,
     const char *method,
+    analyser_abyss_policy_t abyss_policy,
     uint32_t channel,
     raw_annotations_t *annotations
 );
-
 
 /*
  * Free a raw annotation collection.

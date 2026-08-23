@@ -94,6 +94,7 @@ add_library(analyser
 
     src/analyser.c
     src/audio.c
+    src/hop.c
     src/onset.c
     src/aggregate.c
     src/analyser_json.c
@@ -116,6 +117,7 @@ target_include_directories(analyser
 target_include_directories(analyser
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${aubio_SOURCE_DIR}/src
 )
 
 
@@ -128,6 +130,24 @@ target_link_libraries(analyser
         SndFile::sndfile
         aubio
 )
+
+
+# ----------------------------------------------------------------------------
+# libm
+# ----------------------------------------------------------------------------
+#
+# The analyser uses functions from <math.h>.
+#
+# MSVC provides these through its C runtime, so there is no separate
+# mathematical library to link there.
+# ----------------------------------------------------------------------------
+
+if(NOT MSVC)
+    target_link_libraries(analyser
+        PRIVATE
+            m
+    )
+endif()
 
 
 # ============================================================================
@@ -186,6 +206,11 @@ if(ANALYSER_BUILD_TESTS)
 
     enable_testing()
 
+
+    # ------------------------------------------------------------------------
+    # Audio tests
+    # ------------------------------------------------------------------------
+
     add_executable(test_audio
         test/test_audio.c
     )
@@ -205,5 +230,68 @@ if(ANALYSER_BUILD_TESTS)
         NAME audio
         COMMAND test_audio
     )
+
+
+    # ------------------------------------------------------------------------
+    # Hop tests
+    # ------------------------------------------------------------------------
+    #
+    # Add test/test_hop.c when the hop implementation's unit tests are
+    # introduced.
+    #
+    # Keeping hop tests separate from analyser tests is useful because the
+    # abyss policies are an independent piece of infrastructure shared by
+    # multiple detectors.
+    # ------------------------------------------------------------------------
+
+    # add_executable(test_hop
+    #     test/test_hop.c
+    # )
+    #
+    # target_link_libraries(test_hop
+    #     PRIVATE
+    #         analyser
+    # )
+    #
+    # target_include_directories(test_hop
+    #     PRIVATE
+    #         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    #         ${CMAKE_CURRENT_SOURCE_DIR}/src
+    # )
+    #
+    # add_test(
+    #     NAME hop
+    #     COMMAND test_hop
+    # )
+
+
+    # ------------------------------------------------------------------------
+    # Onset tests
+    # ------------------------------------------------------------------------
+    #
+    # Add test/test_onset.c when detector tests are introduced.
+    #
+    # These should exercise the detector independently of aggregation.
+    # ------------------------------------------------------------------------
+
+    # add_executable(test_onset
+    #     test/test_onset.c
+    # )
+    #
+    # target_link_libraries(test_onset
+    #     PRIVATE
+    #         analyser
+    # )
+    #
+    # target_include_directories(test_onset
+    #     PRIVATE
+    #         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    #         ${CMAKE_CURRENT_SOURCE_DIR}/src
+    # )
+    #
+    # add_test(
+    #     NAME onset
+    #     COMMAND test_onset
+    # )
 
 endif()
