@@ -36,6 +36,23 @@ typedef struct analyser analyser_t;
  */
 typedef uint64_t analyser_frame_t;
 
+/*
+ * Maximum representable position in the original PCM stream.
+ */
+#define ANALYSER_FRAME_MAX UINT64_MAX
+
+/* -------------------------------------------------------------------------
+ * Abyss policies
+ * ------------------------------------------------------------------------- */
+
+/*
+ * Policy used to complete the final incomplete input hop.
+ *
+ * The analyser always supplies complete hop-sized buffers to detectors.
+ */
+typedef enum {
+    ANALYSER_ABYSS_FADEOUT = 0
+} analyser_abyss_policy_t;
 
 /* -------------------------------------------------------------------------
  * Errors
@@ -188,12 +205,13 @@ typedef struct {
     uint32_t event_merge_window;
 
     /*
-     * Aubio onset detection method.
+     * Onset detection method.
      *
      * NULL means use the analyser's default method.
      *
-     * This is intentionally a string so aubio remains an
-     * implementation detail.
+     * The resolved default method is explicitly represented internally
+     * by the string "default". Aubio is an implementation detail and
+     * its method names are not part of this public API.
      */
     const char *onset_method;
 
@@ -210,6 +228,11 @@ typedef struct {
      * 0 means use the analyser default.
      */
     uint32_t hop_size;
+
+    /*
+     * Policy used to complete the final incomplete input hop.
+     */
+    analyser_abyss_policy_t abyss_policy;
 
     /*
      * Optional progress callback.
