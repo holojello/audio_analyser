@@ -284,7 +284,9 @@ background_estimate(
             estimator->values[i] - *background
         );
     }
-    /* scale = 6 * robust standard deviation */
+    /* `scale` is the novelty difference corresponding to a strength of 1
+     *
+     * scale = 6 * robust standard deviation */
     *scale =
         ONSET_MAD_SCALE *
         median_of_values(
@@ -317,22 +319,23 @@ observation_strength(
     const descriptor_observation_t *observation
 )
 {
-    float scale;
-
     if (observation == NULL) {
         return 0.0f;
     }
 
-    /*
-     * A zero MAD means that the recent background is perfectly flat.
+    /* Here we handle the special case where the background is perfect silence.
+     * In such situation, the MAD is zero; there is then no meaningful
+     * statistical scale with which to normalize the novelty. Nevertheless, a
+     * novelty strictly above that background is still an event candidate: this
+     * is important for cases such as silence followed by a click.
      *
-     * In that situation there is no meaningful scale against which to
-     * normalize the novelty. Do not manufacture an arbitrary confidence.
+     * Treat such a candidate as having maximum strength.
      */
-    scale = observation->scale;
-
-    if (scale <= 0.0f) {
-        return 0.0f;
+    if (observation->scale <= 0.0f) {
+        return observation->novelty >
+               observation->background
+            ? 1.0f
+            : 0.0f;
     }
 
     return fminf(
@@ -341,11 +344,10 @@ observation_strength(
             0.0f,
             (observation->novelty -
              observation->background) /
-            scale
+            observation->scale
         )
     );
 }
-
 
 static int
 is_peak(
@@ -380,7 +382,7 @@ is_peak(
 
     threshold =
         current->background +
-        ONSET_THRESHOLD_SIGMA *
+        (ONSET_THRESHOLD_SIGMA / ONSET_STRENGTH_SIGMA) *
         current->scale;
 
     return current->novelty > threshold;
