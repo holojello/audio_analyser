@@ -268,30 +268,32 @@ if(ANALYSER_BUILD_TESTS)
     # ------------------------------------------------------------------------
     # Onset tests
     # ------------------------------------------------------------------------
-    #
-    # Add test/test_onset.c when detector tests are introduced.
-    #
     # These should exercise the detector independently of aggregation.
     # ------------------------------------------------------------------------
 
-    # add_executable(test_onset
-    #     test/test_onset.c
-    # )
-    #
-    # target_link_libraries(test_onset
-    #     PRIVATE
-    #         analyser
-    # )
-    #
-    # target_include_directories(test_onset
-    #     PRIVATE
-    #         ${CMAKE_CURRENT_SOURCE_DIR}/include
-    #         ${CMAKE_CURRENT_SOURCE_DIR}/src
-    # )
-    #
-    # add_test(
-    #     NAME onset
-    #     COMMAND test_onset
-    # )
+    add_executable(test_onset
+        test/test_onset.c
+    )
+
+    target_link_libraries(test_onset
+        PRIVATE
+            analyser
+    )
+
+    target_include_directories(test_onset
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+
+    add_test(
+        NAME onset
+        COMMAND test_onset
+    )
+
+    set_tests_properties(onset
+        PROPERTIES
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 
 endif()
