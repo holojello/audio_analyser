@@ -44,11 +44,19 @@
 
 
 /*
- * Candidate onset threshold:
+ * Candidate onset threshold, expressed in robust-deviation units:
  *
- *     novelty > background + threshold * scale
+ *     novelty > background + threshold * robust_deviation
+ *
+ * The background estimator converts MAD to a robust standard-deviation
+ * estimate using ONSET_MAD_SCALE.
+ *
+ * The threshold is deliberately conservative. Stationary signals such
+ * as white noise naturally contain local maxima in their spectral flux;
+ * those maxima should not become musical events merely because of
+ * ordinary fluctuations in the novelty signal.
  */
-#define ONSET_THRESHOLD_SIGMA 3.0f
+#define ONSET_THRESHOLD_SIGMA 6.0f
 
 
 /*
@@ -190,6 +198,7 @@ background_add(
     return 0;
 }
 
+
 /**
  * Estimate the current background level and strength normalization scale.
  *
@@ -284,9 +293,12 @@ background_estimate(
             estimator->values[i] - *background
         );
     }
-    /* `scale` is the novelty difference corresponding to a strength of 1
+
+    /*
+     * `scale` is the novelty difference corresponding to a strength of 1.
      *
-     * scale = 6 * robust standard deviation */
+     * scale = 6 * robust standard deviation
+     */
     *scale =
         ONSET_MAD_SCALE *
         median_of_values(
@@ -323,11 +335,13 @@ observation_strength(
         return 0.0f;
     }
 
-    /* Here we handle the special case where the background is perfect silence.
-     * In such situation, the MAD is zero; there is then no meaningful
-     * statistical scale with which to normalize the novelty. Nevertheless, a
-     * novelty strictly above that background is still an event candidate: this
-     * is important for cases such as silence followed by a click.
+    /*
+     * Here we handle the special case where the background is perfect
+     * silence. In such situation, the MAD is zero; there is then no
+     * meaningful statistical scale with which to normalize the novelty.
+     * Nevertheless, a novelty strictly above that background is still an
+     * event candidate: this is important for cases such as silence
+     * followed by a click.
      *
      * Treat such a candidate as having maximum strength.
      */
@@ -349,15 +363,23 @@ observation_strength(
     );
 }
 
+
+/*
+ * Determine whether three consecutive novelty observations form a local
+ * maximum.
+ *
+ * This function deliberately knows nothing about the statistical
+ * significance of the maximum. A local maximum is only the first stage
+ * of onset detection; the candidate must subsequently pass the adaptive
+ * threshold in passes_adaptive_threshold().
+ */
 static int
-is_peak(
+is_local_maximum(
     const descriptor_observation_t *previous,
     const descriptor_observation_t *current,
     const descriptor_observation_t *next
 )
 {
-    float threshold;
-
     if (previous == NULL ||
         current == NULL ||
         next == NULL) {
@@ -380,12 +402,72 @@ is_peak(
         return 0;
     }
 
-    threshold =
-        current->background +
-        (ONSET_THRESHOLD_SIGMA / ONSET_STRENGTH_SIGMA) *
-        current->scale;
+    return 1;
+}
 
-    return current->novelty > threshold;
+
+/*
+ * Determine whether a local maximum is sufficiently far above its recent
+ * background to be considered an onset.
+ *
+ * `scale` represents ONSET_STRENGTH_SIGMA robust deviations above the
+ * background. The threshold is therefore expressed as:
+ *
+ *     background +
+ *         (ONSET_THRESHOLD_SIGMA / ONSET_STRENGTH_SIGMA) * scale
+ *
+ * With the current values of both constants (6), this is simply:
+ *
+ *     background + scale
+ *
+ * i.e. approximately six robust deviations above the background.
+ */
+static int
+passes_adaptive_threshold(
+    const descriptor_observation_t *observation
+)
+{
+    float threshold;
+
+    if (observation == NULL) {
+        return 0;
+    }
+
+    threshold =
+        observation->background +
+        (ONSET_THRESHOLD_SIGMA / ONSET_STRENGTH_SIGMA) *
+        observation->scale;
+
+    return observation->novelty > threshold;
+}
+
+
+/*
+ * A complete onset candidate consists of two independent properties:
+ *
+ *     1. the novelty must form a local maximum;
+ *     2. that maximum must be sufficiently unusual relative to the recent
+ *        background.
+ *
+ * Keeping these operations separate makes the detector's peak-picking
+ * semantics independent from its false-positive rejection criterion.
+ */
+static int
+is_onset_candidate(
+    const descriptor_observation_t *previous,
+    const descriptor_observation_t *current,
+    const descriptor_observation_t *next
+)
+{
+    return
+        is_local_maximum(
+            previous,
+            current,
+            next
+        ) &&
+        passes_adaptive_threshold(
+            current
+        );
 }
 
 
@@ -846,7 +928,7 @@ onset_analyse_channel(
 
             if (background.count >=
                     ONSET_WARMUP_SAMPLES &&
-                is_peak(
+                is_onset_candidate(
                     &previous,
                     &current,
                     &next
