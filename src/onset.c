@@ -644,13 +644,38 @@ raw_annotations_destroy(
     annotations->capacity = 0;
 }
 
+static int
+prepare_observation(
+    background_estimator_t *background,
+    descriptor_observation_t *observation
+)
+{
+    if (background == NULL ||
+        observation == NULL) {
+        return -1;
+    }
+
+    if (background->count > 0) {
+        if (background_estimate(
+                background,
+                &observation->background,
+                &observation->scale
+            ) != 0) {
+            return -1;
+        }
+    } else {
+        observation->background = 0.0f;
+        observation->scale = 0.0f;
+    }
+
+    return 0;
+}
 
 /*
  * -------------------------------------------------------------------------
  * Default onset detector
  * -------------------------------------------------------------------------
  */
-
 int
 onset_analyse_channel(
     const float *samples,
@@ -865,39 +890,25 @@ onset_analyse_channel(
         }
 
         /*
-         * ---------------------------------------------------------------
-         * Background / candidate sequence
-         * ---------------------------------------------------------------
+         * Capture the background that existed immediately before this
+         * observation.
          *
-         * The current descriptor must NOT participate in the background
-         * against which it is evaluated.
-         *
-         * Therefore:
-         *
-         *   1. estimate background from previous observations;
-         *   2. evaluate current candidate against that background;
-         *   3. add current descriptor to history.
-         *
-         * This gives "magnitude against observed background" the intended
-         * causal interpretation.
+         * In particular, the current novelty value is not part of the
+         * background against which it will eventually be evaluated.
          */
-
-        if (background.count > 0) {
-            if (background_estimate(
-                    &background,
-                    &next.background,
-                    &next.scale
-                ) != 0) {
-                goto cleanup;
-            }
-        } else {
-            next.background = 0.0f;
-            next.scale = 0.0f;
+        if (prepare_observation(
+                &background,
+                &next
+            ) != 0) {
+            goto cleanup;
         }
 
         /*
-         * Add the current descriptor only after its background has been
-         * determined.
+         * The observation now owns its background and scale estimates.
+         *
+         * Add its novelty to the history only after those estimates have
+         * been calculated, so that the observation cannot influence its
+         * own background.
          */
         if (background_add(
                 &background,
@@ -924,8 +935,11 @@ onset_analyse_channel(
              *     previous = descriptor before candidate
              *     current  = candidate
              *     next     = descriptor after candidate
+             *
+             * current.background and current.scale describe the
+             * background that existed immediately before `current`
+             * entered the history.
              */
-
             if (background.count >=
                     ONSET_WARMUP_SAMPLES &&
                 is_onset_candidate(
